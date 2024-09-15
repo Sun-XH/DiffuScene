@@ -1,6 +1,7 @@
 name: diffuscene
 channels:
   - conda-forge
+  - pytorch
   - defaults
 dependencies:
   - cython=0.29.32
@@ -8,8 +9,10 @@ dependencies:
   - networkx=2.5.1
   - pyrr=0.10.3
   - pyyaml=5.3.1
-  - python=3.10
-  - pytorch=1.13.0
+  - python=3.8
+  - cudatoolkit=11.7
+  - pytorch=1.13.1
+  - torchvision=0.14.0
   - pillow=7.2.0
   - scipy=1.8.1
   - tqdm=4.64.1
@@ -26,5 +29,6 @@ dependencies:
     - transformers==4.25.1
     - clip==0.2.0
     - pyvista==0.43.3
+    - torchtext
     - seaborn
     - wandb
