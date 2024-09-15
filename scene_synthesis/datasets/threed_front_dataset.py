@@ -618,6 +618,7 @@ class OrderedDataset(DatasetDecoratorBase):
 ####
 import random
 import torchtext
+from torchtext.vocab import GloVe
 from num2words import num2words
 from nltk.tokenize import word_tokenize
 from .utils_text import compute_rel, get_article
@@ -639,7 +640,7 @@ class Add_Text(DatasetDecoratorBase):
         super().__init__(dataset)
         self.eval = eval
         self.max_sentences = max_sentences
-        self.glove = torchtext.vocab.GloVe(name="6B", dim=50, cache='../.vector_cache')
+        self.glove = GloVe(name="6B", dim=50, cache="../.vector_cache")
         self.max_token_length = max_token_length
 
     def __getitem__(self, idx):
