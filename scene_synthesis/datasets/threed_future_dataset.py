@@ -88,7 +88,7 @@ class ThreedFutureDataset(object):
     def from_pickled_dataset(cls, path_to_pickled_dataset):
         with open(path_to_pickled_dataset, "rb") as f:
             dataset = pickle.load(f)
-        return dataset
+        return cls(dataset)
 
 
 class ThreedFutureNormPCDataset(ThreedFutureDataset):

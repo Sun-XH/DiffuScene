@@ -61,8 +61,10 @@ def build_network(
     # Check whether there is a weight file provided to continue training from
     if weight_file is not None:
         print("Loading weight file from {}".format(weight_file))
+        state_dict = torch.load(weight_file, map_location=device)
+        state_dict.pop('bertmodel.embeddings.position_ids', None)
         network.load_state_dict(
-            torch.load(weight_file, map_location=device)
+            state_dict
         )
     network.to(device)
     return network, train_on_batch, validate_on_batch

@@ -189,7 +189,7 @@ def main(argv):
     with torch.no_grad():
         print("====> Validation Epoch ====>")
         network.eval()
-        for b, sample in enumerate(val_loader):
+        for b, sample in enumerate(train_loader):
             # Move everything to device
             for k, v in sample.items():
                 if not isinstance(v, list):
@@ -205,7 +205,8 @@ def main(argv):
                 idx_i = idx[i].item()
 
                 # save obj autoencoder results for vis check
-                model_jid = validation_dataset.get_model_jid(idx_i)["model_jid"]
+                # model_jid = validation_dataset.get_model_jid(idx_i)["model_jid"]
+                model_jid = train_dataset.get_model_jid(idx_i)["model_jid"]
                 filename_input = "{}/{}.ply".format(generation_directory, model_jid)
                 filename_rec  =  "{}/{}_rec.ply".format(generation_directory, model_jid)
                 export_pointcloud(pc_i, filename_input)
@@ -214,7 +215,8 @@ def main(argv):
 
                 latent_dim=config["network"].get("objfeat_dim", 64)
                 #save objfeat i.e. latent
-                obj = validation_dataset.objects[idx_i]
+                # obj = validation_dataset.objects[idx_i]
+                obj = train_dataset.objects[idx_i]
                 assert model_jid == obj.model_jid
                 raw_model_path = obj.raw_model_path
                 filename_lats = raw_model_path[:-4] + "_norm_pc_lat{:d}.npz".format(latent_dim)

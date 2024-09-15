@@ -308,9 +308,14 @@ def main(argv):
                 )
                 # read class labels and get the color map of each class
                 class_labels = es["class_labels"]
-                color_palette = np.array(sns.color_palette('hls', class_labels.shape[1]-2))
+                classes = dataset.class_labels
+                # color_palette = np.array(sns.color_palette('hls', class_labels.shape[1]-2))
+                with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json",
+                          "r") as f:
+                    color_palette = json.load(f)
                 class_index = class_labels.argmax(axis=1)
-                cc = color_palette[class_index, :]
+                # cc = color_palette[class_index, :]
+                cc = np.array([color_palette[classes[idx]] for idx in class_index]) / 255
                 print('class_labels :', class_labels.shape)
                 renderables = get_colored_objects_in_scene(
                     ss, cc, ignore_lamps=args.without_lamps

@@ -11,9 +11,11 @@ import argparse
 import logging
 import os
 import sys
+import json
 
 import numpy as np
 import torch
+import random
 
 from training_utils import load_config
 from utils import floor_plan_from_scene, export_scene, get_textured_objects_in_scene
@@ -44,7 +46,20 @@ from utils import merge_meshes,  computer_intersection, computer_symmetry
 def categorical_kl(p, q):
     return (p * (np.log(p + 1e-6) - np.log(q + 1e-6))).sum()
 
+def set_seed(seed=42):
+    # Python's built-in random module
+    random.seed(seed)
+
+    # NumPy's random number generator
+    np.random.seed(seed)
+
+    # PyTorch's random number generator
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
+
 def main(argv):
+    set_seed()
     parser = argparse.ArgumentParser(
         description="Generate scenes using a previously trained model"
     )
@@ -336,7 +351,7 @@ def main(argv):
             objfeats = boxes["objfeats"].cpu().numpy()
             print('shape retrieval based on obj latent feats')
 
-            renderables, trimesh_meshes, model_jids = get_textured_objects_based_on_objfeats(
+            renderables, trimesh_meshes, model_jids, scales = get_textured_objects_based_on_objfeats(
                 bbox_params_t, objects_dataset, classes, diffusion=True, no_texture=args.no_texture, query_objfeats=objfeats, 
             )
             renderables_onlysize, trimesh_meshes_onlysize, model_jids_onlysize = get_textured_objects(
@@ -347,6 +362,35 @@ def main(argv):
                 bbox_params_t, objects_dataset, classes, diffusion=True, no_texture=args.no_texture
             )
 
+        obj_info = []
+        for obj_idx in range(len(model_jids)):
+            tmp_obj_info = {}
+            obj_class = classes[boxes["class_labels"][0][obj_idx].argmax(-1)]
+            obj_translation = boxes["translations"][0][obj_idx]
+            obj_size = boxes["sizes"][0][obj_idx]
+            obj_angles = boxes["angles"][0][obj_idx]
+            tmp_obj_info = {
+                "class_label": obj_class,
+                "translation": obj_translation.tolist(),
+                "size": obj_size.tolist(),
+                "angles": obj_angles.tolist(),
+                "scale": scales[obj_idx].tolist(),
+                "model_jid": model_jids[obj_idx]
+            }
+            obj_info.append(tmp_obj_info)
+
+        obj_info_dir = os.path.join(args.output_directory, "obj_info")
+        if not os.path.exists(obj_info_dir):
+            os.makedirs(obj_info_dir)
+
+        path_to_obj_info = "{}/{}_{}_{:03d}.json".format(
+                obj_info_dir,
+                current_scene.scene_id,
+                scene_idx,
+                i
+            )
+        with open(path_to_obj_info, 'w') as json_file:
+            json.dump(obj_info, json_file, indent=4)
 
         if not args.without_floor:
             renderables += floor_plan

@@ -224,7 +224,7 @@ class ThreedFutureModel(BaseThreedFutureModel):
         return os.path.join(
             self.path_to_models,
             self.model_jid,
-            "raw_model_norm_pc_lat.npz"
+            "raw_model_norm_pc_lat64.npz"
         )
 
     @property
