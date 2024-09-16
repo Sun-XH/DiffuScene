@@ -8,7 +8,7 @@ from simple_3dviz import Mesh
 from simple_3dviz.renderables.textured_mesh import Material, TexturedMesh
 import seaborn as sns
 
-def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=False, no_texture=False, render_bboxes=False):
+def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=False, no_texture=False, render_bboxes=False, new_color_palette=True):
     # For each one of the boxes replace them with an object
     renderables = []
     lines_renderables = []
@@ -20,7 +20,12 @@ def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=Fals
         #for autoregressive model, we delete the 'start' and 'end'
         start, end = 1, bbox_params_t.shape[1]-1
 
-    color_palette = np.array(sns.color_palette('hls', len(classes)-2))
+    if not new_color_palette:
+        color_palette = np.array(sns.color_palette('hls', len(classes) - 2))
+    else:
+        with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json", "r") as f:
+            color_palette = json.load(f)
+        color_palette = np.array(color_palette) / 255
 
     for j in range(start, end):
         query_size = bbox_params_t[0, j, -4:-1]
@@ -32,7 +37,10 @@ def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=Fals
         # Load the furniture and scale it as it is given in the dataset
         if no_texture:
             class_index = bbox_params_t[0, j, :-7].argmax(-1)
-            raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[class_index, :])
+            if not new_color_palette:
+                raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[class_index, :])
+            else:
+                raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[classes[class_index]])
         else:
             raw_mesh = TexturedMesh.from_file(furniture.raw_model_path)
         raw_mesh.scale(furniture.scale)
@@ -62,7 +70,10 @@ def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=Fals
         # everything as a single scene
         tr_mesh = trimesh.load(furniture.raw_model_path, force="mesh")
         if no_texture:
-            color = color_palette[class_index, :]
+            if not new_color_palette:
+                color = color_palette[class_index, :]
+            else:
+                color = color_palette[classes[class_index]]
             tr_mesh.visual.vertex_colors = (color[None, :].repeat(tr_mesh.vertices.shape[0], axis=0).reshape(-1, 3) * 255.0).astype(np.uint8)
             tr_mesh.visual.face_colors = (color[None, :].repeat(tr_mesh.faces.shape[0], axis=0).reshape(-1, 3) * 255.0).astype(np.uint8)
         else:
@@ -78,7 +89,7 @@ def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=Fals
     return renderables, trimesh_meshes, model_jids
 
 
-def get_textured_objects_based_on_objfeats(bbox_params_t, objects_dataset, classes, diffusion=False, no_texture=False, query_objfeats=None, combine_size=False, render_bboxes=False):
+def get_textured_objects_based_on_objfeats(bbox_params_t, objects_dataset, classes, diffusion=False, no_texture=False, query_objfeats=None, combine_size=False, render_bboxes=False, new_color_palette=True):
     # For each one of the boxes replace them with an object
     renderables = []
     lines_renderables = []
@@ -92,10 +103,12 @@ def get_textured_objects_based_on_objfeats(bbox_params_t, objects_dataset, class
         #for autoregressive model, we delete the 'start' and 'end'
         start, end = 1, bbox_params_t.shape[1]-1
 
-    color_palette = np.array(sns.color_palette('hls', len(classes)-2))
-
-    # with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json", "r") as f:
-    #     color_palette = json.load(f)
+    if not new_color_palette:
+        color_palette = np.array(sns.color_palette('hls', len(classes)-2))
+    else:
+        with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json", "r") as f:
+            color_palette = json.load(f)
+        color_palette = np.array(color_palette) / 255
 
     for j in range(start, end):
         query_size = bbox_params_t[0, j, -4:-1]
@@ -113,8 +126,10 @@ def get_textured_objects_based_on_objfeats(bbox_params_t, objects_dataset, class
         # Load the furniture and scale it as it is given in the dataset
         if no_texture:
             class_index = bbox_params_t[0, j, :-7].argmax(-1)
-            raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[class_index, :])
-            # raw_mesh = Mesh.from_file(furniture.raw_model_path, color=np.asarray(color_palette[classes[class_index]])/255)
+            if not new_color_palette:
+                raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[class_index, :])
+            else:
+                raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[classes[class_index]])
         else:
             raw_mesh = TexturedMesh.from_file(furniture.raw_model_path)
         
@@ -153,8 +168,10 @@ def get_textured_objects_based_on_objfeats(bbox_params_t, objects_dataset, class
         # everything as a single scene
         tr_mesh = trimesh.load(furniture.raw_model_path, force="mesh")
         if no_texture:
-            color=color_palette[class_index, :]
-            # color = np.asarray(color_palette[classes[class_index]])/255
+            if not new_color_palette:
+                color = color_palette[class_index, :]
+            else:
+                color = color_palette[classes[class_index]]
             tr_mesh.visual.vertex_colors = (color[None, :].repeat(tr_mesh.vertices.shape[0], axis=0).reshape(-1, 3) * 255.0).astype(np.uint8)
             tr_mesh.visual.face_colors = (color[None, :].repeat(tr_mesh.faces.shape[0], axis=0).reshape(-1, 3) * 255.0).astype(np.uint8)
         else:
