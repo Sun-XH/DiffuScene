@@ -623,6 +623,7 @@ from num2words import num2words
 from nltk.tokenize import word_tokenize
 from .utils_text import compute_rel, get_article
 from collections import Counter, defaultdict
+torchtext.disable_torchtext_deprecation_warning()
 
 def dict_bbox_to_vec(dict_box):
     '''

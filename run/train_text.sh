@@ -1,6 +1,6 @@
 cd ../scripts
 
-exp_dir="./models"
+exp_dir="../models"
 
 #### bedrooms
 #config="../config/text/diffusion_bedrooms_instancond_lat32_v_bert.yaml"
