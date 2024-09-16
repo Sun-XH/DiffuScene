@@ -46,7 +46,7 @@ network:
         loss_separate: true
         # calculate iou loss
         loss_iou: true
-        train_stats_file: "../3d_front_preprocessed/bedroom_obj_feats_32_64_tmp/dataset_stats.txt"
+        train_stats_file: "../3d_front_preprocessed/bedrooms_objfeats_32_64/dataset_stats.txt"
 
     net_kwargs:
         dim: 512
