@@ -404,7 +404,7 @@ class Scale(DatasetDecoratorBase):
         bounds = self.bounds
         sample_params = {}
         for k, v in s.items():
-            if k == "room_layout" or k == "class_labels" or k == "relations" or k == "description" or k == "desc_emb":
+            if k == "room_layout" or k == "class_labels" or k == "relations" or k == "description" or k == "desc_emb" or k == "room_type":
                 sample_params[k] = v
                 
             elif k == "objfeats" or k == "objfeats_32":
@@ -560,7 +560,7 @@ class Jitter(DatasetDecoratorBase):
     def __getitem__(self, idx):
         sample_params = self._dataset[idx]
         for k, v in sample_params.items():
-            if k == "room_layout" or k == "class_labels" or k == "relations" or k == "description" or k == "desc_emb" or k == "objfeats" or k == "objfeats_32":
+            if k == "room_layout" or k == "class_labels" or k == "relations" or k == "description" or k == "desc_emb" or k == "objfeats" or k == "objfeats_32" or k == "room_type":
                 sample_params[k] = v
             else:
                 sample_params[k] = v + np.random.normal(0, 0.01)
@@ -623,7 +623,7 @@ from num2words import num2words
 from nltk.tokenize import word_tokenize
 from .utils_text import compute_rel, get_article
 from collections import Counter, defaultdict
-torchtext.disable_torchtext_deprecation_warning()
+# torchtext.disable_torchtext_deprecation_warning()
 
 def dict_bbox_to_vec(dict_box):
     '''
@@ -820,6 +820,34 @@ class Add_Text(DatasetDecoratorBase):
 
         return sample
 
+class Add_Room_Type(DatasetDecoratorBase):
+    def __init__(self, dataset, orig_dataset):
+        super().__init__(dataset)
+        self._orig_dataset = orig_dataset
+
+    def __getitem__(self, idx):
+        scene = self._dataset[idx]
+        sample = self._orig_dataset[idx]
+
+        # Add scene labels
+        scene = self.add_room_type(scene, sample)
+        return scene
+
+    def add_room_type(self, scene, sample):
+        """
+        Add scene labels to sample['scene_label']
+        """
+        room_type = sample.scene_id.item().lower()
+        if "bed" in room_type:
+            scene["room_type"] = torch.tensor([1.0, 0.0, 0.0, 0.0])
+        elif "dining" in room_type:
+            scene["room_type"] = torch.tensor([0.0, 1.0, 0.0, 0.0])
+        elif "living" in room_type:
+            scene["room_type"] = torch.tensor([0.0, 0.0, 1.0, 0.0])
+        else:
+            raise NotImplementedError()
+        return scene
+
 
 class Autoregressive(DatasetDecoratorBase):
     def __getitem__(self, idx):
@@ -828,7 +856,7 @@ class Autoregressive(DatasetDecoratorBase):
         sample_params_target = {}
         # Compute the target from the input
         for k, v in sample_params.items():
-            if k == "room_layout" or k == "length":
+            if k == "room_layout" or k == "length" or k == "room_type":
                 pass
 
             elif k == "relations" or k == "description" or k == "desc_emb":
@@ -872,7 +900,7 @@ class AutoregressiveWOCM(Autoregressive):
         n_boxes = np.random.randint(0, L+1)
 
         for k, v in sample_params.items():
-            if k == "room_layout" or k == "length":
+            if k == "room_layout" or k == "length" or k == "room_type":
                 pass
             
             elif k == "relations" or k == "description" or k == "desc_emb":
@@ -898,7 +926,7 @@ class Diffusion(DatasetDecoratorBase):
         sample_params_target = {}
         # Compute the target from the input
         for k, v in sample_params.items():
-            if k == "room_layout" or k == "length":
+            if k == "room_layout" or k == "length" or k == "room_type":
                 pass
 
             elif k == "relations" or k == "description" or k == "desc_emb":
@@ -955,14 +983,14 @@ def dataset_encoding_factory(
             if "lat32" in name:
                 dataset_collection = OrderedDataset(
                     CachedDatasetCollection(dataset),
-                    ["class_labels", "translations", "sizes", "angles", "objfeats_32"],
+                    ["class_labels", "translations", "sizes", "angles", "objfeats_32", "room_type"],
                     box_ordering=box_ordering
                 )
                 print("use lat32 as objfeats")
             else:
                 dataset_collection = OrderedDataset(
                     CachedDatasetCollection(dataset),
-                    ["class_labels", "translations", "sizes", "angles", "objfeats"],
+                    ["class_labels", "translations", "sizes", "angles", "objfeats", "room_type"],
                     box_ordering=box_ordering
                 )
                 print("use lat64 as objfeats")
@@ -1003,6 +1031,11 @@ def dataset_encoding_factory(
             angles, 
             objfeats,
             objfeats_32
+        )
+    elif "unified" in name:
+        return Add_Room_Type(
+            dataset_collection,
+            dataset
         )
 
     if isinstance(augmentations, list):

@@ -1,6 +1,6 @@
 
 from .base import THREED_FRONT_BEDROOM_FURNITURE, \
-    THREED_FRONT_LIVINGROOM_FURNITURE, THREED_FRONT_LIBRARY_FURNITURE
+    THREED_FRONT_LIVINGROOM_FURNITURE, THREED_FRONT_LIBRARY_FURNITURE, THREED_FRONT_UNIFIED_FURNITURE
 from .common import BaseDataset
 from .threed_front import ThreedFront, CachedThreedFront
 from .threed_front_dataset import dataset_encoding_factory
@@ -171,6 +171,23 @@ def filter_function(config, split=["train", "val"], without_lamps=False):
                 if without_lamps else [""]
             ),
             BaseDataset.with_scene_ids(split_scene_ids)
+        )
+    elif "threed_front_unified" in config["filter_fn"]:
+        return BaseDataset.filter_compose(
+            BaseDataset.with_rooms(["bed", "living", "dining"]),
+            BaseDataset.at_least_boxes(3),
+            BaseDataset.at_most_boxes(21),
+            BaseDataset.with_object_types(list(THREED_FRONT_UNIFIED_FURNITURE.keys())),
+            BaseDataset.with_generic_classes(THREED_FRONT_UNIFIED_FURNITURE),
+            BaseDataset.with_valid_scene_ids(invalid_scene_ids),
+            BaseDataset.with_valid_bbox_jids(invalid_bbox_jids),
+            BaseDataset.room_smaller_than_along_axis(4.0, axis=1),
+            BaseDataset.room_larger_than_along_axis(-0.005, axis=1),
+            BaseDataset.floor_plan_with_limits(12, 12, axis=[0, 2]),
+            BaseDataset.without_box_types(
+                ["ceiling_lamp", "pendant_lamp"] if without_lamps else [""]
+            ),
+            BaseDataset.with_scene_ids(split_scene_ids),
         )
     elif config["filter_fn"] == "non_empty":
         return lambda s: s if len(s.bboxes) > 0 else False

@@ -189,7 +189,7 @@ def main(argv):
     with torch.no_grad():
         print("====> Validation Epoch ====>")
         network.eval()
-        for b, sample in enumerate(train_loader):
+        for b, sample in enumerate(val_loader):
             # Move everything to device
             for k, v in sample.items():
                 if not isinstance(v, list):

@@ -228,7 +228,6 @@ class ThreedFront(BaseDataset):
         bounds = None
         if path_to_bounds:
             bounds = np.load(path_to_bounds, allow_pickle=True)
-
         return cls([s for s in map(filter_fn, scenes) if s], bounds)
 
 

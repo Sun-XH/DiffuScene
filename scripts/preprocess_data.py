@@ -144,6 +144,8 @@ def main(argv):
         os.makedirs(args.output_directory)
 
     # Create the scene and the behaviour list for simple-3dviz
+    if "living" or "dining" in args.dataset_filtering:
+        args.room_side = 6.1
     scene = scene_from_args(args)
 
     with open(args.path_to_invalid_scene_ids, "r") as f:
@@ -220,7 +222,7 @@ def main(argv):
     )
     print(dataset.bounds)
     print("Loading dataset with {} rooms".format(len(dataset)))
-
+    breakpoint()
     encoded_dataset = dataset_encoding_factory(
         "basic", dataset, augmentations=None, box_ordering=None
     )
@@ -254,6 +256,7 @@ def main(argv):
                 os.path.join(room_directory, "room_mask.png")
             )[:, :, 0:1]
 
+            breakpoint()
             if args.add_objfeats:
                 np.savez_compressed(
                     os.path.join(room_directory, "boxes"),
@@ -309,13 +312,13 @@ def main(argv):
                 # read class labels and get the color map of each class
                 class_labels = es["class_labels"]
                 classes = dataset.class_labels
-                # color_palette = np.array(sns.color_palette('hls', class_labels.shape[1]-2))
-                with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json",
-                          "r") as f:
-                    color_palette = json.load(f)
+                color_palette = np.array(sns.color_palette('hls', class_labels.shape[1]-2))
+                # with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json",
+                #           "r") as f:
+                #     color_palette = json.load(f)
                 class_index = class_labels.argmax(axis=1)
-                # cc = color_palette[class_index, :]
-                cc = np.array([color_palette[classes[idx]] for idx in class_index]) / 255
+                cc = color_palette[class_index, :]
+                # cc = np.array([color_palette[classes[idx]] for idx in class_index]) / 255
                 print('class_labels :', class_labels.shape)
                 renderables = get_colored_objects_in_scene(
                     ss, cc, ignore_lamps=args.without_lamps

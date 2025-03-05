@@ -1,0 +1,10 @@
+3d_front_preprocessed/
+ChamferDistancePytorch/
+models/
+scene_synthesis/
+scene_synthesis.egg-info/
+outputs/
+.idea/
+.vector_cache/
+wandb/
+__pycache__/

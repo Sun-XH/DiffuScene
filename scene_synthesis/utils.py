@@ -25,7 +25,6 @@ def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=Fals
     else:
         with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json", "r") as f:
             color_palette = json.load(f)
-        color_palette = np.array(color_palette) / 255
 
     for j in range(start, end):
         query_size = bbox_params_t[0, j, -4:-1]
@@ -40,7 +39,7 @@ def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=Fals
             if not new_color_palette:
                 raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[class_index, :])
             else:
-                raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[classes[class_index]])
+                raw_mesh = Mesh.from_file(furniture.raw_model_path, color=np.array(color_palette[classes[class_index]])/255)
         else:
             raw_mesh = TexturedMesh.from_file(furniture.raw_model_path)
         raw_mesh.scale(furniture.scale)
@@ -73,7 +72,7 @@ def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=Fals
             if not new_color_palette:
                 color = color_palette[class_index, :]
             else:
-                color = color_palette[classes[class_index]]
+                color = np.array(color_palette[classes[class_index]])/255
             tr_mesh.visual.vertex_colors = (color[None, :].repeat(tr_mesh.vertices.shape[0], axis=0).reshape(-1, 3) * 255.0).astype(np.uint8)
             tr_mesh.visual.face_colors = (color[None, :].repeat(tr_mesh.faces.shape[0], axis=0).reshape(-1, 3) * 255.0).astype(np.uint8)
         else:
@@ -108,7 +107,6 @@ def get_textured_objects_based_on_objfeats(bbox_params_t, objects_dataset, class
     else:
         with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json", "r") as f:
             color_palette = json.load(f)
-        color_palette = np.array(color_palette) / 255
 
     for j in range(start, end):
         query_size = bbox_params_t[0, j, -4:-1]
@@ -129,7 +127,7 @@ def get_textured_objects_based_on_objfeats(bbox_params_t, objects_dataset, class
             if not new_color_palette:
                 raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[class_index, :])
             else:
-                raw_mesh = Mesh.from_file(furniture.raw_model_path, color=color_palette[classes[class_index]])
+                raw_mesh = Mesh.from_file(furniture.raw_model_path, color=np.array(color_palette[classes[class_index]])/255)
         else:
             raw_mesh = TexturedMesh.from_file(furniture.raw_model_path)
         
@@ -171,7 +169,7 @@ def get_textured_objects_based_on_objfeats(bbox_params_t, objects_dataset, class
             if not new_color_palette:
                 color = color_palette[class_index, :]
             else:
-                color = color_palette[classes[class_index]]
+                color = np.array(color_palette[classes[class_index]])/255
             tr_mesh.visual.vertex_colors = (color[None, :].repeat(tr_mesh.vertices.shape[0], axis=0).reshape(-1, 3) * 255.0).astype(np.uint8)
             tr_mesh.visual.face_colors = (color[None, :].repeat(tr_mesh.faces.shape[0], axis=0).reshape(-1, 3) * 255.0).astype(np.uint8)
         else:

@@ -28,7 +28,7 @@ from scene_synthesis.utils import get_textured_objects, get_textured_objects_bas
 from scene_synthesis.stats_logger import AverageAggregator
 
 from simple_3dviz import Scene
-#from simple_3dviz.window import show
+# from simple_3dviz.window import show
 from simple_3dviz.behaviours.keyboard import SnapshotOnKey, SortTriangles
 from simple_3dviz.behaviours.misc import LightToCamera
 from simple_3dviz.behaviours.movements import CameraTrajectory
@@ -41,10 +41,12 @@ from utils import render as render_top2down
 from utils import merge_meshes
 import trimesh
 import open3d as o3d
-from utils import merge_meshes,  computer_intersection, computer_symmetry
+from utils import merge_meshes, computer_intersection, computer_symmetry
+
 
 def categorical_kl(p, q):
     return (p * (np.log(p + 1e-6) - np.log(q + 1e-6))).sum()
+
 
 def set_seed(seed=42):
     # Python's built-in random module
@@ -57,6 +59,7 @@ def set_seed(seed=42):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)  # if you are using multi-GPU.
+
 
 def main(argv):
     set_seed()
@@ -139,6 +142,12 @@ def main(argv):
         help="Number of frames to be rendered"
     )
     parser.add_argument(
+        "--room_side",
+        type=float,
+        default=3.1,
+        help="The size of the room along a side (default:3.1)"
+    )
+    parser.add_argument(
         "--without_screen",
         action="store_true",
         help="Perform no screen rendering"
@@ -195,6 +204,11 @@ def main(argv):
         action="store_true",
         help="if remove the texture"
     )
+    parser.add_argument(
+        "--new_color_palette",
+        action="store_true",
+        help="if use the new color palette"
+    )
     args = parser.parse_args(argv)
 
     # Disable trimesh's logger
@@ -211,6 +225,12 @@ def main(argv):
         os.makedirs(args.output_directory)
 
     config = load_config(args.config_file)
+    if "living" in config["data"]["filter_fn"] or "dining" in config["data"]["filter_fn"]:
+        args.room_side = 6.1
+    else:
+        args.room_side = 3.1
+
+    # breakpoint()
 
     ########## make it for evaluation
     if 'text' in config["data"]["encoding_type"]:
@@ -236,6 +256,7 @@ def main(argv):
     objects_dataset = ThreedFutureDataset.from_pickled_dataset(
         args.path_to_pickled_3d_futute_models
     )
+    # breakpoint()
     print("Loaded {} 3D-FUTURE models".format(len(objects_dataset)))
 
     raw_dataset, dataset = get_dataset_raw_and_encoded(
@@ -265,16 +286,16 @@ def main(argv):
     # Create the scene and the behaviour list for simple-3dviz top-down orthographic rendering, the arguments are same as preprocess_data.py
     if args.render_top2down:
         if args.without_floor:
-            scene_top2down = Scene(size=(256, 256), background=[1,1,1,1])
+            scene_top2down = Scene(size=(256, 256), background=[1, 1, 1, 1])
         else:
-            scene_top2down = Scene(size=(256, 256), background=[0,0,0,1])
-        scene_top2down.up_vector = (0,0,-1)
+            scene_top2down = Scene(size=(256, 256), background=[0, 0, 0, 1])
+        scene_top2down.up_vector = (0, 0, -1)
         scene_top2down.camera_target = (0, 0, 0)
-        scene_top2down.camera_position = (0,4,0)
-        scene_top2down.light = (0,4,0)
+        scene_top2down.camera_position = (0, 4, 0)
+        scene_top2down.light = (0, 4, 0)
         scene_top2down.camera_matrix = Matrix44.orthogonal_projection(
-            left=-3.1, right=3.1,
-            bottom=3.1, top=-3.1,
+            left=-args.room_side, right=args.room_side,
+            bottom=args.room_side, top=-args.room_side,
             near=0.1, far=6
         )
 
@@ -284,7 +305,6 @@ def main(argv):
         for i, di in enumerate(raw_dataset):
             if str(di.scene_id) == args.scene_id:
                 given_scene_id = i
-
 
     if args.compute_intersec:
         num_objects_counter = []
@@ -296,13 +316,12 @@ def main(argv):
         OVERLAP_RATIO = AverageAggregator()
 
         num_objects_counter_onlysize = []
-        total_num_symmetry_onlysize, total_num_pairs_onlysize  = 0, 0
+        total_num_symmetry_onlysize, total_num_pairs_onlysize = 0, 0
         NUM_OBJ_ONLYSIZE = AverageAggregator()
         NUM_PAIRS_ONLYSIZE = AverageAggregator()
         BOX_IOU_ONLYSIZE = AverageAggregator()
-        BOX_INSEC_ONLYSIZE= AverageAggregator()
+        BOX_INSEC_ONLYSIZE = AverageAggregator()
         OVERLAP_RATIO_ONLYSIZE = AverageAggregator()
-        
 
     classes = np.array(dataset.class_labels)
     print('class labels:', classes, len(classes))
@@ -314,7 +333,7 @@ def main(argv):
                 scene_idx = given_scene_id or (i % len(dataset))
         else:
             scene_idx = given_scene_id or np.random.choice(len(dataset))
-            
+
         current_scene = raw_dataset[scene_idx]
         samples = dataset[scene_idx]
         print("{} / {}: Using the {} floor plan of scene {}".format(
@@ -325,16 +344,15 @@ def main(argv):
             current_scene, args.path_to_floor_plan_textures, no_texture=args.no_texture
         )
 
-
         bbox_params = network.generate_layout(
-                room_mask=room_mask.to(device),
-                num_points=config["network"]["sample_num_points"],
-                point_dim=config["network"]["point_dim"],
-                #text=torch.from_numpy(samples['desc_emb'])[None, :].to(device) if 'desc_emb' in samples.keys() else None, # glove embedding
-                text=samples['description'] if 'description' in samples.keys() else None,  # bert 
-                device=device,
-                clip_denoised=args.clip_denoised,
-                batch_seeds=torch.arange(i, i+1),
+            room_mask=room_mask.to(device),
+            num_points=config["network"]["sample_num_points"],
+            point_dim=config["network"]["point_dim"],
+            # text=torch.from_numpy(samples['desc_emb'])[None, :].to(device) if 'desc_emb' in samples.keys() else None, # glove embedding
+            text=samples['description'] if 'description' in samples.keys() else None,  # bert
+            device=device,
+            clip_denoised=args.clip_denoised,
+            batch_seeds=torch.arange(i, i + 1),
         )
 
         boxes = dataset.post_process(bbox_params)
@@ -346,20 +364,22 @@ def main(argv):
         ], dim=-1).cpu().numpy()
         print('Generated bbox:', bbox_params_t.shape)
 
-
         if args.retrive_objfeats:
             objfeats = boxes["objfeats"].cpu().numpy()
             print('shape retrieval based on obj latent feats')
 
             renderables, trimesh_meshes, model_jids, scales = get_textured_objects_based_on_objfeats(
-                bbox_params_t, objects_dataset, classes, diffusion=True, no_texture=args.no_texture, query_objfeats=objfeats, 
+                bbox_params_t, objects_dataset, classes, diffusion=True, no_texture=args.no_texture,
+                query_objfeats=objfeats, new_color_palette=args.new_color_palette
             )
             renderables_onlysize, trimesh_meshes_onlysize, model_jids_onlysize = get_textured_objects(
-                bbox_params_t, objects_dataset, classes, diffusion=True, no_texture=args.no_texture
+                bbox_params_t, objects_dataset, classes, diffusion=True, no_texture=args.no_texture,
+                new_color_palette=args.new_color_palette
             )
         else:
             renderables, trimesh_meshes, model_jids = get_textured_objects(
-                bbox_params_t, objects_dataset, classes, diffusion=True, no_texture=args.no_texture
+                bbox_params_t, objects_dataset, classes, diffusion=True, no_texture=args.no_texture,
+                new_color_palette=args.new_color_palette
             )
 
         obj_info = []
@@ -384,11 +404,11 @@ def main(argv):
             os.makedirs(obj_info_dir)
 
         path_to_obj_info = "{}/{}_{}_{:03d}.json".format(
-                obj_info_dir,
-                current_scene.scene_id,
-                scene_idx,
-                i
-            )
+            obj_info_dir,
+            current_scene.scene_id,
+            scene_idx,
+            i
+        )
         with open(path_to_obj_info, 'w') as json_file:
             json.dump(obj_info, json_file, indent=4)
 
@@ -410,7 +430,7 @@ def main(argv):
                 mode="shading",
                 frame_path=path_to_image,
             )
-            
+
             if args.retrive_objfeats:
                 # save results of only retrieving sizes
                 path_to_image_onlysize = "{}/{}".format(
@@ -434,7 +454,6 @@ def main(argv):
                     frame_path=path_to_image_onlysize,
                 )
 
-            
             if args.compute_intersec:
                 num_objects, num_pairs, avg_iou, avg_insec, overlap_ratio = computer_intersection(trimesh_meshes)
                 num_objects_counter.append(num_objects)
@@ -443,18 +462,21 @@ def main(argv):
                 BOX_IOU.value = avg_iou
                 BOX_INSEC.value = avg_insec
                 OVERLAP_RATIO.value = overlap_ratio
-                num_symmetries = computer_symmetry(trimesh_meshes, boxes["class_labels"][0, :, :].cpu().numpy(), model_jids)
+                num_symmetries = computer_symmetry(trimesh_meshes, boxes["class_labels"][0, :, :].cpu().numpy(),
+                                                   model_jids)
                 total_num_symmetry += num_symmetries
                 total_num_pairs += num_pairs
-                string = "num scenes: {:d} - num objects avg: {:f} - std: {:f} - num pairs: {:f} - box iou: {:f} - box intersec: {:f} - overlap ratio: {:f} - total num symmetries: {:d} - total num pairs: {:d} retrive objfeats  "\
-                    .format(i+1, NUM_OBJ.value, np.array(num_objects_counter).std(), NUM_PAIRS.value, BOX_IOU.value, BOX_INSEC.value, OVERLAP_RATIO.value, total_num_symmetry, total_num_pairs)
-                print( string )
-                with open( os.path.join(args.output_directory, "iou_states.txt"), 'a') as f:
-                    f.write(string+"\n")
+                string = "num scenes: {:d} - num objects avg: {:f} - std: {:f} - num pairs: {:f} - box iou: {:f} - box intersec: {:f} - overlap ratio: {:f} - total num symmetries: {:d} - total num pairs: {:d} retrive objfeats  " \
+                    .format(i + 1, NUM_OBJ.value, np.array(num_objects_counter).std(), NUM_PAIRS.value, BOX_IOU.value,
+                            BOX_INSEC.value, OVERLAP_RATIO.value, total_num_symmetry, total_num_pairs)
+                print(string)
+                with open(os.path.join(args.output_directory, "iou_states.txt"), 'a') as f:
+                    f.write(string + "\n")
                 f.close()
 
                 if args.retrive_objfeats:
-                    num_objects, num_pairs, avg_iou, avg_insec, overlap_ratio = computer_intersection(trimesh_meshes_onlysize)
+                    num_objects, num_pairs, avg_iou, avg_insec, overlap_ratio = computer_intersection(
+                        trimesh_meshes_onlysize)
                     num_objects_counter_onlysize.append(num_objects)
                     NUM_OBJ_ONLYSIZE.value = num_objects
                     NUM_PAIRS_ONLYSIZE.value = num_pairs
@@ -462,14 +484,18 @@ def main(argv):
                     BOX_INSEC_ONLYSIZE.value = avg_insec
                     OVERLAP_RATIO_ONLYSIZE.value = overlap_ratio
 
-                    num_symmetries = computer_symmetry(trimesh_meshes_onlysize, boxes["class_labels"][0, :, :].cpu().numpy(), model_jids_onlysize)
+                    num_symmetries = computer_symmetry(trimesh_meshes_onlysize,
+                                                       boxes["class_labels"][0, :, :].cpu().numpy(),
+                                                       model_jids_onlysize)
                     total_num_symmetry_onlysize += num_symmetries
                     total_num_pairs_onlysize += num_pairs
-                    string = "num scenes: {:d} - num objects avg: {:f} - std: {:f} - num pairs: {:f} - box iou: {:f} - box intersec: {:f} - overlap ratio: {:f} - total num symmetries: {:d} - total num pairs: {:d} retrive only size"\
-                    .format(i+1, NUM_OBJ_ONLYSIZE.value, np.array(num_objects_counter_onlysize).std(), NUM_PAIRS_ONLYSIZE.value, BOX_IOU_ONLYSIZE.value, BOX_INSEC_ONLYSIZE.value, OVERLAP_RATIO_ONLYSIZE.value, total_num_symmetry_onlysize, total_num_pairs_onlysize)
-                    print( string )
-                    with open( os.path.join(args.output_directory, "iou_states.txt"), 'a') as f:
-                        f.write(string+"\n")
+                    string = "num scenes: {:d} - num objects avg: {:f} - std: {:f} - num pairs: {:f} - box iou: {:f} - box intersec: {:f} - overlap ratio: {:f} - total num symmetries: {:d} - total num pairs: {:d} retrive only size" \
+                        .format(i + 1, NUM_OBJ_ONLYSIZE.value, np.array(num_objects_counter_onlysize).std(),
+                                NUM_PAIRS_ONLYSIZE.value, BOX_IOU_ONLYSIZE.value, BOX_INSEC_ONLYSIZE.value,
+                                OVERLAP_RATIO_ONLYSIZE.value, total_num_symmetry_onlysize, total_num_pairs_onlysize)
+                    print(string)
+                    with open(os.path.join(args.output_directory, "iou_states.txt"), 'a') as f:
+                        f.write(string + "\n")
                     f.close()
 
         if args.save_mesh:
@@ -482,8 +508,8 @@ def main(argv):
                 if not os.path.exists(path_to_objs):
                     os.mkdir(path_to_objs)
                 filename = "{}_{}_{:03d}".format(current_scene.scene_id, scene_idx, i)
-                path_to_scene = os.path.join(path_to_objs, filename+args.mesh_format)
-                whole_scene_mesh = merge_meshes( trimesh_meshes )
+                path_to_scene = os.path.join(path_to_objs, filename + args.mesh_format)
+                whole_scene_mesh = merge_meshes(trimesh_meshes)
                 o3d.io.write_triangle_mesh(path_to_scene, whole_scene_mesh)
 
             if args.retrive_objfeats:
@@ -497,19 +523,18 @@ def main(argv):
                         os.mkdir(path_to_objs_retrive_onlysize)
 
                     filename = "{}_{}_{:03d}".format(current_scene.scene_id, scene_idx, i)
-                    path_to_scene_onlysize = os.path.join(path_to_objs_retrive_onlysize, filename+args.mesh_format)
-                    whole_scene_mesh_onlysize = merge_meshes( trimesh_meshes_onlysize )
+                    path_to_scene_onlysize = os.path.join(path_to_objs_retrive_onlysize, filename + args.mesh_format)
+                    whole_scene_mesh_onlysize = merge_meshes(trimesh_meshes_onlysize)
                     o3d.io.write_triangle_mesh(path_to_scene_onlysize, whole_scene_mesh_onlysize)
-
 
         if "description" in samples.keys():
             path_to_texts = os.path.join(
                 args.output_directory,
                 "{}_{}_{:03d}_text.txt".format(current_scene.scene_id, scene_idx, i)
             )
-            print('the length of samples[description]: {:d}'.format( len(samples['description']) ) )
-            print('text description {}'.format( samples['description']) )
-            open(path_to_texts, 'w').write( ''.join(samples['description']) )
+            print('the length of samples[description]: {:d}'.format(len(samples['description'])))
+            print('text description {}'.format(samples['description']))
+            open(path_to_texts, 'w').write(''.join(samples['description']))
 
 
 if __name__ == "__main__":
