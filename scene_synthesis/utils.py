@@ -23,7 +23,7 @@ def get_textured_objects(bbox_params_t, objects_dataset, classes, diffusion=Fals
     if not new_color_palette:
         color_palette = np.array(sns.color_palette('hls', len(classes) - 2))
     else:
-        with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json", "r") as f:
+        with open("/localhome/xsa55/Xiaohao/SemDiffLayout/preprocess/scripts/config/color_palette.json", "r") as f:
             color_palette = json.load(f)
 
     for j in range(start, end):
@@ -105,7 +105,7 @@ def get_textured_objects_based_on_objfeats(bbox_params_t, objects_dataset, class
     if not new_color_palette:
         color_palette = np.array(sns.color_palette('hls', len(classes)-2))
     else:
-        with open("/localhome/xsa55/Xiaohao/SemDiffLayout/scripts/visualization/config/color_palette.json", "r") as f:
+        with open("/localhome/xsa55/Xiaohao/SemDiffLayout/preprocess/scripts/config/color_palette.json", "r") as f:
             color_palette = json.load(f)
 
     for j in range(start, end):
