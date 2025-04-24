@@ -11,7 +11,7 @@ dependencies:
   - pyyaml
   - python=3.10
   - pip
-  - pillow=7.2.0
+  - pillow
   - scipy
   - tqdm
   - trimesh
