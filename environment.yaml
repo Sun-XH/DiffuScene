@@ -8,7 +8,7 @@ dependencies:
   - numpy=1.21.3
   - networkx=2.5.1
   - pyrr=0.10.3
-  - pyyaml=5.3.1
+  - pyyaml
   - python=3.11
   - pip
   - pillow=7.2.0
@@ -16,7 +16,7 @@ dependencies:
   - tqdm
   - trimesh
   - matplotlib
-  - wxpython=4.0.7
+  - wxpython
   - pip:
     - simple_3dviz==0.4.0
     - num2words
