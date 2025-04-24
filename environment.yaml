@@ -9,7 +9,7 @@ dependencies:
   - networkx=2.5.1
   - pyrr=0.10.3
   - pyyaml
-  - python=3.11
+  - python=3.10
   - pip
   - pillow=7.2.0
   - scipy
